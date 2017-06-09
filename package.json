@@ -1,0 +1,23 @@
+{
+  "name": "socketparser",
+  "version": "1.0.0",
+  "description": "parser object from socket",
+  "main": "main.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "keywords": [
+    "nodejs",
+    "socket",
+    "parser",
+    "object"
+  ],
+  "author": "wucong",
+  "license": "ISC",
+  "dependencies": {
+    "chai": "^4.0.2"
+  }
+}
