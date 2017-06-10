@@ -14,12 +14,13 @@ class BufferNotify {
         this.notify();
     }
     notify() {
-        this.events.forEach((item, index, array) => {
+        this.events.forEach((item, itemIndex, array) => {
             const trigger = item.trigger;
             switch (trigger.type) {
                 case "length":
                     if (this.length > trigger.content) {
                         item.callback(this.pick(trigger.content));
+                        this.events.splice(itemIndex, 1);
                     } else {
                         return;
                     }
@@ -29,7 +30,8 @@ class BufferNotify {
 
                     if (index != -1) {
                         const data = this.pick(index - this.start + 1);
-                        item.callback(data.toString());
+                        item.callback(data);
+                        this.events.splice(itemIndex, 1);
                     } else {
                         return;
                     }
@@ -38,7 +40,7 @@ class BufferNotify {
                     return;
             }
             return;
-        })
+        });
     }
     //this will be call while this buffer is enough to get
     pick(len) {
