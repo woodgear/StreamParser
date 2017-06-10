@@ -10,12 +10,25 @@ describe("StreamParser", () => {
             this.val = val;
         }
         static async constructorFromStream(stream) {
-            let data = await stream.get(4);
-            const key = data.toString();
-            data = await stream.get(1);
-            data = await stream.get(1);
-            const val = data.toString();
+            const key = await stream.getString(4);
+            await stream.getString(1);
+            const val = await stream.getString(1);
             return new testPattern(key, val);
+        }
+    }
+    class Quatrains {
+        constructor(heaer, jaw, neck, tail) {
+            this.heaer = heaer;
+            this.jaw = jaw;
+            this.neck = neck;
+            this.tail = tail;
+        }
+        static async constructorFromStream(stream) {
+            const head = await stream.getLine();
+            const jaw = await stream.getLine();
+            const neck = await stream.getLine();
+            const tail = await stream.getLine();
+            return new Quatrains(head, jaw, neck, tail);
         }
     }
     class twoTestPattern {
@@ -37,7 +50,8 @@ describe("StreamParser", () => {
             const buffer = Buffer.from("test:atest:atest:a");
             var bufferStream = new PassThrough();
             bufferStream.end(buffer);
-            bufferStream.pipe(new StreamParser({}, testPattern, (obj) => {
+
+            const streamParser = new StreamParser(testPattern, (obj) => {
                 count = count + 1;
                 try {
                     expect(obj).to.be.eql(new testPattern("test", "a"));
@@ -48,7 +62,9 @@ describe("StreamParser", () => {
                 if (count === 3) {
                     resolve("ok");
                 }
-            }));
+            });
+
+            bufferStream.pipe(streamParser);
         });
     });
     it("should parser twoTestPattern from  socket which send sucess", async () => {
@@ -57,9 +73,29 @@ describe("StreamParser", () => {
             var bufferStream = new PassThrough();
             bufferStream.end(buffer);
 
-            const streamParser = new StreamParser({}, twoTestPattern, (obj) => {
+            const streamParser = new StreamParser(twoTestPattern, (obj) => {
                 try {
                     expect(obj).to.be.eql(new twoTestPattern(new testPattern('test', 'a'), new testPattern('test', 'a')))
+                } catch (e) {
+                    reject(e);
+                }
+                resolve("ok");
+            });
+
+            bufferStream.pipe(streamParser);
+
+        });
+    });
+    it("should getline  from  stream", async () => {
+        await new Promise((resolve, reject) => {
+            const buffer = Buffer.from(
+                `朝辞白帝彩云间\n千里江陵一日还\n两岸猿声啼不住\n轻舟已过万重山\n`);
+            var bufferStream = new PassThrough();
+            bufferStream.end(buffer);
+
+            const streamParser = new StreamParser(Quatrains, (obj) => {
+                try {
+                    expect(obj).to.be.eql(new Quatrains("朝辞白帝彩云间", "千里江陵一日还", "两岸猿声啼不住", "轻舟已过万重山"))
                 } catch (e) {
                     reject(e);
                 }

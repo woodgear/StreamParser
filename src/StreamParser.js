@@ -1,4 +1,6 @@
 const { Writable } = require('stream');
+
+
 class BufferNotify {
     constructor() {
         this.buffer = Buffer.alloc(0);
@@ -13,13 +15,29 @@ class BufferNotify {
     }
     notify() {
         this.events.forEach((item, index, array) => {
-            if (this.length > item.len) {
-                const data = this.pick(item.len);
-                item.callback(data);
-                array.splice(item);
-            } else {
-                return;
+            const trigger = item.trigger;
+            switch (trigger.type) {
+                case "length":
+                    if (this.length > trigger.content) {
+                        item.callback(this.pick(trigger.content));
+                    } else {
+                        return;
+                    }
+                    break;
+                case "contains":
+                    const index = this.buffer.indexOf(trigger.content, this.start + 1);
+
+                    if (index != -1) {
+                        const data = this.pick(index - this.start + 1);
+                        item.callback(data.toString());
+                    } else {
+                        return;
+                    }
+                    break;
+                default:
+                    return;
             }
+            return;
         })
     }
     //this will be call while this buffer is enough to get
@@ -29,8 +47,8 @@ class BufferNotify {
         this.length = this.buffer.length - this.start;
         return data;
     }
-    addListener(len, callback) {
-        this.events.push({ len, callback });
+    addListener(trigger, callback) {
+        this.events.push({ "trigger": trigger, "callback": callback });
     }
 
     async parser(obj) {
@@ -42,21 +60,36 @@ class BufferNotify {
             return this.pick(len);
         } else {
             return new Promise((resolve, reject) => {
-                this.addListener(len, (data) => {
+                this.addListener({ type: "length", content: len }, (data) => {
                     resolve(data);
                 });
             });
         }
     }
 
-    async read(len) {
-        const data = await get(len);
+    async getString(len) {
+        const data = await this.get(len);
+        return data.toString();
     }
+
+    async getLine() {
+        const index = this.buffer.indexOf("\n", this.start);
+        if (index != -1) {
+            const data = this.pick(index - this.start + 1);
+            return data.toString().trim();
+        } else {
+            return new Promise((resolve, reject) => {
+                this.addListener({ type: "contains", content: "\n" }, (data) => {
+                    resolve(data.toString().trim());
+                });
+            });
+        }
+    }
+
 }
 class StreamParser extends Writable {
-    constructor(config, pattern, OnParsedLisener) {
+    constructor(pattern, OnParsedLisener) {
         super({});
-        this.config = config;
         this.OnParsedLisener = OnParsedLisener;
         this.pattern = pattern;
         this.buffer = new BufferNotify();
