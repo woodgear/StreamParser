@@ -1,5 +1,5 @@
 {
-  "name": "socketparser",
+  "name": "streamparser",
   "version": "1.0.0",
   "description": "parser object from socket",
   "main": "main.js",

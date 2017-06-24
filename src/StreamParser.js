@@ -92,7 +92,6 @@ class BufferNotify {
 class StreamParser extends Writable {
     constructor(pattern, OnParsedLisener) {
         super({});
-        this.OnParsedLisener = OnParsedLisener;
         this.pattern = pattern;
         this.buffer = new BufferNotify();
         this.isFinished = false;
@@ -100,8 +99,11 @@ class StreamParser extends Writable {
         this.on("finish", () => {
             this.isFinished = true;
         });
+        if (OnParsedLisener) {
+            this.OnParsedLisener = OnParsedLisener;
+            this.startParser(this.pattern, this.buffer, this.OnParsedLisener);
+        }
 
-        this.startParser(this.pattern, this.buffer, this.OnParsedLisener);
     }
     isFinish() {
         return this.isFinished && this.buffer.length === 0;
@@ -116,6 +118,11 @@ class StreamParser extends Writable {
     _write(chunk, encoding, callback) {
         this.buffer.apped(chunk);
         callback();
+    }
+    *[Symbol.iterator]() {
+        while (!this.isFinish()) {
+            yield this.pattern.constructorFromStream(this.buffer);
+        }
     }
 }
 module.exports = StreamParser;
